@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gestão Paroquial - Debug Mode</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 20px;
+        background: var(--bg);
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 1000px;
+        margin: auto;
+      }
+      nav {
+        margin-bottom: 20px;
+        background: #333;
+        padding: 10px;
+        border-radius: 5px;
+      }
+      nav a {
+        color: white;
+        margin-right: 15px;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+      .form-group {
+        margin-bottom: 10px;
+      }
+      label {
+        display: block;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+      button {
+        padding: 10px;
+        cursor: pointer;
+        background: #28a745;
+        color: white;
+        border: none;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background: #f4f4f4;
+      }
+      #debug-log {
+        background: #000;
+        color: #0f0;
+        padding: 10px;
+        font-family: monospace;
+        height: 150px;
+        overflow-y: scroll;
+        margin-top: 20px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav>
+        <a onclick="showSection('sec-login')">Login</a>
+        <a onclick="showSection('sec-usuarios')">Usuários</a>
+        <a onclick="showSection('sec-ministerios')">Ministérios</a>
+        <a onclick="showSection('sec-eventos')">Eventos</a>
+      </nav>
+
+      <div id="sec-login" class="section active">
+        <h2>Login</h2>
+        <div class="form-group">
+          <input type="email" id="login-email" placeholder="Email" />
+          <input type="password" id="login-senha" placeholder="Senha" />
+          <button onclick="doLogin()">Entrar</button>
+        </div>
+        <p id="login-msg"></p>
+      </div>
+
+      <div id="sec-usuarios" class="section">
+        <h2>Gestão de Usuários</h2>
+        <div style="background: #f9f9f9; padding: 10px; border: 1px solid #ccc">
+          <h3 id="form-title">Cadastro</h3>
+          <input type="hidden" id="user-id" />
+          <div class="form-group">
+            <label>Nome</label><input type="text" id="user-nome" />
+            <label>Email</label><input type="email" id="user-email" />
+            <label>Senha</label><input type="password" id="user-senha" />
+            <label>Telefone</label><input type="text" id="user-tel" />
+            <label>Tipo</label>
+            <select id="user-tipo">
+              <option value="MEMBRO">MEMBRO</option>
+              <option value="COORDENADOR">COORDENADOR</option>
+              <option value="ADM">ADM</option>
+              <option value="VISITANTE">VISITANTE</option>
+            </select>
+            <label>Data Nasc</label><input type="date" id="user-data" />
+            <button id="btn-user-save" onclick="saveUser()">
+              Salvar Usuário
+            </button>
+            <button onclick="clearUserForm()" style="background: gray">
+              Limpar
+            </button>
+          </div>
+        </div>
+        <table id="table-usuarios">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Tipo</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-usuarios"></tbody>
+        </table>
+        <button onclick="loadUsers()" style="margin-top: 10px">
+          🔄 Atualizar Lista
+        </button>
+      </div>
+
+      <div id="sec-ministerios" class="section">
+        <h2>Ministérios</h2>
+        <button onclick="loadMinisterios()">🔄 Listar Ministérios</button>
+        <table id="table-ministerios">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Dia</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-ministerios"></tbody>
+        </table>
+      </div>
+
+      <div id="sec-eventos" class="section">
+        <h2>Eventos</h2>
+        <button onclick="loadEventos()">🔄 Listar Eventos</button>
+        <table id="table-eventos">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Título</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-eventos"></tbody>
+        </table>
+      </div>
+
+      <h3>Log de Sistema (Debug)</h3>
+      <div id="debug-log"></div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // PUBLIC/INDEX.HTML - COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // // txt 1: API_URL dinâmica | txt 7 tabelas + txt 3/4/5 CRUD usuários
+      // Seções 1-10: ver RESPOSTAS_PROJETO.txt (Conexão, JSON, CRUD, Tabela, Permissão Front/Back)
+      // ==============================================================
+      // Força a URL para localhost caso esteja abrindo o arquivo direto
+        const API_URL = window.API_CONFIG.getBaseUrl();
+
+      function log(msg, type = "info") {
+        const logDiv = document.getElementById("debug-log");
+        const time = new Date().toLocaleTimeString();
+        const color =
+          type === "error" ? "red" : type === "success" ? "lime" : "#0f0";
+        logDiv.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+        console.log(`[${type}] ${msg}`);
+      }
+
+      function showSection(id) {
+        document
+          .querySelectorAll(".section")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+      }
+
+      async function doLogin() {
+        const email = document.getElementById("login-email").value;
+        const senha = document.getElementById("login-senha").value;
+        log(`Tentando login com: ${email}...`);
+
+        try {
+          const res = await fetch(`${API_URL}/usuarios/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuarios: { email, senha } }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            localStorage.setItem("token", data.data.token);
+            log("Login realizado com sucesso!", "success");
+            document.getElementById("login-msg").innerText = "Login realizado!";
+          } else {
+            log("Erro no login: " + data.message, "error");
+            document.getElementById("login-msg").innerText =
+              "Erro: " + data.message;
+          }
+        } catch (erro) {
+          log("Erro de conexão ao fazer login: " + e.message, "error");
+        }
+      }
+
+      async function loadUsers() {
+        log("Buscando usuários em: " + API_URL + "/usuarios...");
+        try {
+          const res = await fetch(`${API_URL}/usuarios`);
+          const data = await res.json();
+          log("Resposta da API: " + JSON.stringify(data));
+
+          const tbody = document.getElementById("tbody-usuarios");
+          tbody.innerHTML = "";
+
+          if (data.success && data.data) {
+            log(`${data.data.length} usuários encontrados.`, "success");
+            data.data.forEach((u) => {
+              tbody.innerHTML += `<tr>
+                        <td>${u.id_usuarios}</td>
+                        <td>${u.nome}</td>
+                        <td>${u.email}</td>
+                        <td>${u.tipo_usuario}</td>
+                        <td>
+                            <button onclick="editUser(${u.id_usuarios}, '${u.nome}', '${u.email}', '${u.tel}', '${u.tipo_usuario}', '${u.data_nasc}')">Editar</button>
+                            <button onclick="deleteUser(${u.id_usuarios})" style="background:red">X</button>
+                        </td>
+                    </tr>`;
+            });
+          } else {
+            log("API retornou success: false ou sem dados.", "error");
+          }
+        } catch (erro) {
+          log("Erro ao carregar usuários: " + e.message, "error");
+        }
+      }
+
+      async function saveUser() {
+        const id = document.getElementById("user-id").value;
+        const payload = {
+          usuarios: {
+            nomeUsuario: document.getElementById("user-nome").value,
+            email: document.getElementById("user-email").value,
+            senha: document.getElementById("user-senha").value,
+            tel: document.getElementById("user-tel").value,
+            tipoUsuario: document.getElementById("user-tipo").value,
+            data_nasc: document.getElementById("user-data").value,
+          },
+        };
+
+        const method = id ? "PUT" : "POST";
+        const url = id ? `${API_URL}/usuarios/${id}` : `${API_URL}/usuarios`;
+
+        log(`Salvando usuário via ${method} em ${url}...`);
+
+        try {
+          const res = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (data.success) {
+            log("Usuário salvo com sucesso!", "success");
+            clearUserForm();
+            loadUsers();
+          } else {
+            log("Erro ao salvar: " + data.message, "error");
+          }
+        } catch (erro) {
+          log("Erro na conexão: " + e.message, "error");
+        }
+      }
+
+      function editUser(id, nome, email, tel, tipo, data) {
+        document.getElementById("user-id").value = id;
+        document.getElementById("user-nome").value = nome;
+        document.getElementById("user-email").value = email;
+        document.getElementById("user-tel").value = tel;
+        document.getElementById("user-tipo").value = tipo;
+        document.getElementById("user-data").value = data;
+        document.getElementById("form-title").innerText =
+          "Editando Usuário ID: " + id;
+        document.getElementById("btn-user-save").innerText =
+          "Atualizar Usuário";
+        log(`Editando usuário ${id}...`);
+      }
+
+      async function deleteUser(id) {
+        if (!confirm("Deseja excluir?")) return;
+        log(`Excluindo usuário ${id}...`);
+        try {
+          const res = await fetch(`${API_URL}/usuarios/${id}`, {
+            method: "DELETE",
+          });
+          const data = await res.json();
+          if (data.success) {
+            log("Excluído com sucesso!", "success");
+            loadUsers();
+          } else {
+            log("Erro ao excluir: " + data.message, "error");
+          }
+        } catch (erro) {
+          log("Erro na conexão: " + e.message, "error");
+        }
+      }
+
+      function clearUserForm() {
+        document.getElementById("user-id").value = "";
+        document.getElementById("user-nome").value = "";
+        document.getElementById("user-email").value = "";
+        document.getElementById("user-senha").value = "";
+        document.getElementById("user-tel").value = "";
+        document.getElementById("user-data").value = "";
+        document.getElementById("form-title").innerText = "Cadastro";
+        document.getElementById("btn-user-save").innerText = "Salvar Usuário";
+      }
+
+      async function loadMinisterios() {
+        log("Buscando ministérios...");
+        try {
+          const res = await fetch(`${API_URL}/ministerios`);
+          const data = await res.json();
+          const tbody = document.getElementById("tbody-ministerios");
+          tbody.innerHTML = "";
+          if (data.success && data.data) {
+            data.data.forEach((m) => {
+              tbody.innerHTML += `<tr><td>${m.id_ministerios}</td><td>${m.nome}</td><td>${m.dia_reuniao}</td></tr>`;
+            });
+            log("Ministérios carregados.", "success");
+          }
+        } catch (erro) {
+          log("Erro ao carregar ministérios: " + e.message, "error");
+        }
+      }
+
+      async function loadEventos() {
+        log("Buscando eventos...");
+        try {
+          const res = await fetch(`${API_URL}/eventos`);
+          const data = await res.json();
+          const tbody = document.getElementById("tbody-eventos");
+          tbody.innerHTML = "";
+          if (data.success && data.data) {
+            data.data.forEach((e) => {
+              tbody.innerHTML += `<tr><td>${e.id_evento}</td><td>${e.titulo}</td><td>${e.data_evento}</td></tr>`;
+            });
+            log("Eventos carregados.", "success");
+          }
+        } catch (erro) {
+          log("Erro ao carregar eventos: " + e.message, "error");
+        }
+      }
+    </script>
+  </body>
+</html>

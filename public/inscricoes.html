@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Inscrições</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>⛪ Gestão Paroquial</h2>
+      <a href="usuarios.html" id="nav-usuarios">👥 Usuários</a
+      ><a href="ministerios.html">⛪ Ministérios</a
+      ><a href="eventos.html">📅 Eventos</a
+      ><a href="inscricoes.html" class="active">📝 Inscrições</a
+      ><a href="mensagens.html">📢 Mensagens</a
+      ><a href="login.html" style="margin-top: auto; color: #e74c3c">🚪 Sair</a>
+    </div>
+    <div class="main-content">
+      <h1>📝 Inscrição em Eventos</h1>
+      <div class="card" id="card-inscrever">
+        <h3>Fazer Inscrição (usuário logado)</h3>
+        <p>Você será inscrito automaticamente como: <b id="meu-nome"></b></p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px">
+          <div class="form-group">
+            <label>Evento</label
+            ><select id="evento_id"></select>
+          </div>
+          <div class="form-group">
+            <label>Presença</label
+            ><select id="presenca">
+              <option value="CONFIRMADA">CONFIRMADA</option>
+              <option value="PENDENTE">PENDENTE</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-success" onclick="saveInscricao()">
+          Inscrever-me
+        </button>
+      </div>
+      <div class="card" id="card-lista-adm" style="display: none">
+        <div style="display: flex; justify-content: space-between">
+          <h3>Lista de Inscrições (somente ADM)</h3>
+          <button class="btn-primary" onclick="loadInscricoes()">
+            🔄 Atualizar
+          </button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Usuário</th>
+              <th>Evento</th>
+              <th>Data</th>
+              <th>Presença</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="ins-table"></tbody>
+        </table>
+      </div>
+      <p id="msg-nao-adm" style="display: none" class="card">
+        🔒 A lista completa é visível apenas para administradores.
+      </p>
+    </div>
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // PUBLIC/INSCRICOES.HTML - COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // // txt 1: API_URL | txt 10 isAdm controla lista ADM vs usuário comum | txt 6 Authorization Bearer
+      // Seções 1-10: ver RESPOSTAS_PROJETO.txt (Conexão, JSON, CRUD, Tabela, Permissão Front/Back)
+      // ==============================================================
+      const API_URL = window.API_CONFIG.getBaseUrl();
+      if (!localStorage.getItem("token")) location.href = "login.html";
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const isAdm = ["ADM", "ADMINISTRADOR", "ADMINISTRATOR"].includes(
+        String(
+          user.tipoUsuario || user.tipo_usuario || user.role || "",
+        ).toUpperCase(),
+      );
+      document.getElementById("meu-nome").innerText =
+        user.nomeUsuario || user.nome || user.email || "";
+      if (isAdm)
+        document.getElementById("card-lista-adm").style.display = "block";
+      else {
+        document.getElementById("msg-nao-adm").style.display = "block";
+        document.getElementById("nav-usuarios").style.display = "none";
+      }
+      if (!isAdm)
+        document.getElementById("nav-usuarios").style.display = "none";
+      async function fetchAPI(e, m = "GET", b = null) {
+        const h = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        };
+        const o = { method: m, headers: h };
+        if (b) o.body = JSON.stringify(b);
+        const r = await fetch(API_URL + e, o);
+        return r.json();
+      }
+      let eventsList = [],
+        usersList = [];
+      async function loadAux() {
+        const eData = await fetchAPI("/eventos");
+        if (eData.success) {
+          eventsList = eData.data.eventos;
+          document.getElementById("evento_id").innerHTML = eventsList
+            .map(
+              (e) =>
+                `<option value="${e.id_evento || e.idEvento}">${e.titulo}</option>`,
+            )
+            .join("");
+        }
+        if (isAdm) {
+          try {
+            const u = await fetchAPI("/usuarios");
+            usersList = u.data.usuarios || [];
+          } catch (erro) {}
+        }
+      }
+      async function loadInscricoes() {
+        const data = await fetchAPI("/inscricoes");
+        const tb = document.getElementById("ins-table");
+        tb.innerHTML = "";
+        if (!data.success) {
+          tb.innerHTML = `<tr><td colspan=6>${data.message || "Erro ao carregar"}</td></tr>`;
+          return;
+        }
+        if (data.success)
+          data.data.inscricoes.forEach((i) => {
+            const id = i.idInscricoes || i.id_inscricoes;
+            const uname =
+              i.nomeUsuario ||
+              i.nome_usuario ||
+              usersList.find(
+                (u) =>
+                  (u.idUsuario || u.id_usuarios) ==
+                  (i.usuarioId || i.usuario_id),
+              )?.nomeUsuario ||
+              i.usuarioId ||
+              i.usuario_id;
+            const ename =
+              i.tituloEvento ||
+              i.titulo_evento ||
+              eventsList.find(
+                (e) =>
+                  (e.id_evento || e.idEvento) == (i.eventoId || i.evento_id),
+              )?.titulo ||
+              i.eventoId ||
+              i.evento_id;
+            tb.innerHTML += `<tr><td>${id}</td><td>${uname}</td><td>${ename}</td><td>${i.dataInscricao || i.data_inscricao}</td><td>${i.presenca}</td><td><button class="btn-danger" onclick="deleteIns(${id})">Excluir</button></td></tr>`;
+          });
+      }
+      async function saveInscricao() {
+        const payload = {
+          inscricoes: {
+            eventoId: parseInt(document.getElementById("evento_id").value),
+            presenca: document.getElementById("presenca").value,
+            dataInscricao: new Date().toISOString().split("T")[0],
+          },
+        };
+        const r = await fetchAPI("/inscricoes", "POST", payload);
+        alert(r.message || (r.success ? "Inscrito!" : "Erro"));
+        if (r.success && isAdm) loadInscricoes();
+      }
+      async function deleteIns(id) {
+        if (!confirm("Excluir?")) return;
+        const r = await fetchAPI(`/inscricoes/${id}`, "DELETE");
+        if (r.success) loadInscricoes();
+      }
+      window.onload = async () => {
+        await loadAux();
+        if (isAdm) loadInscricoes();
+      };
+    </script>
+  </body>
+</html>

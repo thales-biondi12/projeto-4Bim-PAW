@@ -1,0 +1,13 @@
+{
+  "name": "api-js",
+  "version": "1.0.0",
+  "private": true,
+  "main": "Server/Server.js",
+  "scripts": { "start": "node Server/Server.js" },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.5"
+  }
+}

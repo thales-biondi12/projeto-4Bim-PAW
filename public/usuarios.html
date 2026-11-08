@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Usuários - Sistema Paroquial</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>⛪ Gestão Paroquial</h2>
+      <a href="usuarios.html" id="nav-usuarios" class="active">👥 Usuários</a>
+      <a href="ministerios.html" id="nav-ministerios">⛪ Ministérios</a>
+      <a href="eventos.html" id="nav-eventos">📅 Eventos</a>
+      <a href="inscricoes.html" id="nav-inscricoes">📝 Inscrições</a>
+      <a href="mensagens.html" id="nav-mensagens">📢 Mensagens</a>
+      <a href="login.html" style="margin-top: auto; color: #e74c3c">🚪 Sair</a>
+    </div>
+
+    <div class="main-content">
+      <div id="content-area">
+        <h1 id="page-title">Gestão de Usuários</h1>
+
+        <div class="card admin-only">
+          <h3>Cadastrar Novo Usuário</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px">
+            <div class="form-group">
+              <label>Nome</label>
+              <input type="text" id="nome" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="email" />
+            </div>
+            <div class="form-group">
+              <label>Senha</label>
+              <input type="password" id="senha" />
+            </div>
+            <div class="form-group">
+              <label>Telefone</label>
+              <input type="text" id="tel" />
+            </div>
+            <div class="form-group">
+              <label>Tipo de Usuário</label>
+              <select id="tipo">
+                <option value="MEMBRO">MEMBRO</option>
+                <option value="COORDENADOR">COORDENADOR</option>
+                <option value="ADM">ADM</option>
+                <option value="VISITANTE">VISITANTE</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Data de Nascimento</label>
+              <input type="date" id="data_nasc" />
+            </div>
+          </div>
+          <input type="hidden" id="user-id" />
+          <div style="margin-top: 10px">
+            <button class="btn-success" onclick="saveUser()">
+              Salvar Usuário
+            </button>
+            <button
+              class="btn-danger"
+              style="background: #95a5a6"
+              onclick="clearForm()"
+            >
+              Limpar
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <h3>Lista de Usuários</h3>
+            <button class="btn-primary" onclick="loadUsers()">
+              🔄 Atualizar Lista
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Tipo</th>
+                <th class="admin-only">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="user-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // USUARIOS.HTML - JS COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // Seções: 1 (conexão), 2 (manda dados), 4 (atualiza), 5 (exclui), 6 (back pega dados), 7 (tabela), 10 (permissão)
+      // ==============================================================
+      const API_URL = window.API_CONFIG.getBaseUrl();
+
+      /**
+       * applyPermissions() - txt 10.A.2 e 10.A.3
+       * Lê localStorage user.tipoUsuario (salvo no login.html:38)
+       * Se não for ADM esconde .admin-only via .hidden e bloqueia acesso à página (conteúdo Acesso Restrito)
+       * HTML classe admin-only no form e coluna Ações; Back garante em ValidateADM + ValidateUsuariosToken (403)
+       */
+      function applyPermissions() {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const role = String(user.tipoUsuario || user.role || "MEMBRO").trim().toUpperCase();
+
+        // 1. ESCONDE ELEMENTOS DE ADMIN
+        document.querySelectorAll(".admin-only").forEach((el) => {
+          if (role !== "ADM") el.classList.add("hidden");
+        });
+
+        // 2. BLOQUEIA ACESSO À PÁGINA DE USUÁRIOS PARA MEMBROS
+        if (
+          role !== "ADM" &&
+          window.location.pathname.includes("usuarios.html")
+        ) {
+          document.getElementById("content-area").innerHTML = `
+                    <div class="card" style="text-align:center; padding: 50px;">
+                        <h2 style="color: #e74c3c;">🚫 Acesso Restrito</h2>
+                        <p>Apenas administradores podem visualizar e gerenciar a lista de usuários.</p>
+                        <a href="eventos.html" class="btn-primary" style="text-decoration:none; display:inline-block; margin-top:20px;">Ir para Eventos</a>
+                    </div>`;
+        }
+      }
+
+      if (!localStorage.getItem("token")) {
+        window.location.href = "login.html";
+      }
+
+      /**
+       * fetchAPI() - txt 1, 2 e 6
+       * Centraliza fetch: adiciona Content-Type: application/json e Authorization: Bearer <token>
+       * Body via JSON.stringify (txt 2) -> Back lê em $request->getParsedBody() e $request->getHeaderLine('Authorization') (txt 6)
+       * Trata 401 (token inválido em MeuTokenJWT.php) e 403 (ValidateADM.php: Apenas administradores)
+       */
+      async function fetchAPI(endpoint, method = "GET", body = null) {
+        const headers = { "Content-Type": "application/json" };
+        const token = localStorage.getItem("token");
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(`${API_URL}${endpoint}`, options);
+        const data = await response.json();
+        if (response.status === 401) {
+          alert("Sessão expirada. Faça login novamente.");
+          localStorage.clear();
+          window.location.href = "login.html";
+        }
+        if (response.status === 403) {
+          alert(data.message || "Apenas ADM pode excluir usuários");
+        }
+        return data;
+      }
+
+      /**
+       * loadUsers() - txt 7: COMO CRIA TABELA NO FRONT + txt 1 e 10.A.4
+       * GET /usuarios (Router UsuariosRouter.php com ValidateADM + ValidateUsuariosToken)
+       * Limpa tbody#user-table e faz forEach data.data.usuarios -> innerHTML <tr> (txt 7)
+       * Botões Editar/Excluir só ADM (txt 10.A.4) + reaplica permissões
+       */
+      async function loadUsers() {
+        try {
+          const data = await fetchAPI("/usuarios");
+          const tbody = document.getElementById("user-table");
+          if (!tbody) return;
+          tbody.innerHTML = "";
+
+          if (data.success && data.data && data.data.usuarios) {
+            data.data.usuarios.forEach((u) => {
+              const id = u.idUsuario || u.id_usuarios;
+              const nome = u.nomeUsuario || u.nome;
+              const email = u.email;
+              const tipo = u.tipoUsuario || u.tipo_usuario;
+              tbody.innerHTML += `
+                            <tr>
+                                <td>${id}</td>
+                                <td>${nome}</td>
+                                <td>${email}</td>
+                                <td>${tipo}</td>
+                                <td class="admin-only">
+                                    <button class="btn-primary" onclick="editUser(${id}, '${nome}', '${email}', '${u.tel || ""}', '${tipo}', '${u.data_nasc || ""}')">Editar</button>
+                                    <button class="btn-danger" onclick="deleteUser(${id})">Excluir</button>
+                                </td>
+                            </tr>`;
+            });
+            applyPermissions();
+          }
+        } catch (erro) {
+          console.error(e);
+        }
+      }
+
+      /**
+       * saveUser() - txt 3 (cadastra) e 4 (atualiza)
+       * Monta payload { usuarios: {nomeUsuario,email,senha,tel,tipoUsuario,data_nasc}} (txt 2)
+       * Se tem id -> PUT /usuarios/{id} (ValidateUsuariosId+Body), senão POST /usuarios (ValidateUsuariosBody)
+       * Controller->Service->DAO (INSERT/UPDATE) -> 201/success -> clearForm() + loadUsers()
+       */
+      async function saveUser() {
+        const id = document.getElementById("user-id").value;
+        const payload = {
+          usuarios: {
+            nomeUsuario: document.getElementById("nome").value,
+            email: document.getElementById("email").value,
+            senha: document.getElementById("senha").value,
+            tel: document.getElementById("tel").value,
+            tipoUsuario: document.getElementById("tipo").value,
+            data_nasc: document.getElementById("data_nasc").value,
+          },
+        };
+        const method = id ? "PUT" : "POST";
+        const endpoint = id ? `/usuarios/${id}` : "/usuarios";
+        const result = await fetchAPI(endpoint, method, payload);
+        if (result.success) {
+          alert("Usuário salvo!");
+          clearForm();
+          loadUsers();
+        } else {
+          alert("Erro: " + result.message);
+        }
+      }
+
+      /** editUser() - txt 4: preenche form + hidden #user-id para PUT; troca título para "Editando ID" */
+      function editUser(id, nome, email, tel, tipo, data) {
+        document.getElementById("user-id").value = id;
+        document.getElementById("nome").value = nome;
+        document.getElementById("email").value = email;
+        document.getElementById("tel").value = tel;
+        document.getElementById("tipo").value = tipo;
+        document.getElementById("data_nasc").value = data;
+        document.getElementById("form-title").innerText =
+          "Editando Usuário ID: " + id;
+      }
+
+      /**
+       * deleteUser() - txt 5: COMO EXCLUI -> DELETE /usuarios/{id} (ValidateUsuariosId) -> DAO DELETE WHERE id=?
+       * Depois loadUsers() para recarregar tabela (txt 5)
+       */
+      async function deleteUser(id) {
+        if (!confirm("Tem certeza que deseja excluir o usuário #" + id + "?"))
+          return;
+        try {
+          const result = await fetchAPI(`/usuarios/${id}`, "DELETE");
+          if (result.success) {
+            alert("Usuário excluído com sucesso!");
+            loadUsers();
+          } else {
+            alert(
+              "Erro ao excluir: " + (result.message || JSON.stringify(result)),
+            );
+            console.error(result);
+          }
+        } catch (erro) {
+          alert("Erro de conexão ao excluir: " + e.message);
+          console.error(e);
+        }
+      }
+
+      /** clearForm() - limpa hidden id e inputs, reseta título */
+      function clearForm() {
+        document.getElementById("user-id").value = "";
+        document.querySelectorAll("input").forEach((i) => (i.value = ""));
+        document.getElementById("form-title").innerText =
+          "Cadastrar Novo Usuário";
+      }
+
+      window.onload = () => {
+        applyPermissions();
+        loadUsers();
+      };
+    </script>
+  </body>
+</html>

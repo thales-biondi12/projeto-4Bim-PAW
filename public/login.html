@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login - Sistema Paroquial</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="login-container">
+    <div class="login-card">
+      <h2>⛪ Sistema Paroquial</h2>
+      <p>Faça login para acessar o sistema</p>
+      <div class="form-group">
+        <input type="email" id="email" placeholder="Email" />
+      </div>
+      <div class="form-group">
+        <input type="password" id="senha" placeholder="Senha" />
+      </div>
+      <button class="btn-primary full" onclick="handleLogin()">Entrar</button>
+      <p id="msg" style="color: red; margin-top: 15px"></p>
+      <p style="margin-top: 15px">
+        Não tem uma conta?
+        <a href="cadastro.html" style="color: #3498db">Cadastre-se aqui</a>
+      </p>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // LOGIN.HTML - JS COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // Seções do txt: 1 (onde conecta), 2 (como manda dados), 10 (permissão)
+      // ==============================================================
+
+      /**
+       * handleLogin() - Seção 1 e 2 do txt
+       * 1. ONDE CONECTA: fetch em http://localhost:8000/usuarios/login (txt linha login)
+       * 2. COMO MANDA: JSON.stringify({ usuarios: { email, senha } }) + header Content-Type: application/json
+       *    Back recebe em: public/index.php (addBodyParsingMiddleware) -> $request->getParsedBody()
+       *    Fluxo Back txt seção 3/8: Router -> ValidateUsuariosLoginBody -> Controller -> Service -> DAO -> MySQL
+       * 10. PERMISSÃO: salva token + user (com tipoUsuario) no localStorage para controle de permissão
+       *     txt 10.A.1: localStorage.setItem('user', JSON.stringify(data.data.usuario))
+       *     Depois applyPermissions() / checkAdmin() nas outras páginas lê isso
+       */
+      async function handleLogin() {
+        const email = document.getElementById("email").value;
+        const senha = document.getElementById("senha").value;
+        const msg = document.getElementById("msg");
+
+        try {
+          const response = await fetch(`${window.API_CONFIG.getBaseUrl()}/usuarios/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuarios: { email, senha } }),
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            // txt 10.A.1 - guarda JWT e usuário (tipoUsuario) para permissões e Authorization: Bearer <token>
+            localStorage.setItem("token", data.data.token); // usado em ValidateUsuariosToken.php + MeuTokenJWT.php
+            localStorage.setItem("user", JSON.stringify(data.data.usuario));
+            window.location.href = "usuarios.html";
+          } else {
+            msg.innerText = data.message || "Erro ao fazer login";
+          }
+        } catch (erro) {
+          msg.innerText = "Erro de conexão com o servidor";
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,69 @@
+INSTRUÇÕES PARA RODAR O SISTEMA PAROQUIAL
+
+1. Pré-requisitos
+- Node.js instalado.
+- MySQL instalado e em execução.
+
+2. Criar o banco de dados
+- Abra o MySQL Workbench ou o terminal do MySQL.
+- Execute todo o conteúdo do arquivo: docs\banco.sql
+- O script cria o banco Web, as tabelas e os usuários de teste.
+
+3. Iniciar a API Node.js
+- Abra um terminal na pasta do projeto e execute:
+
+  cd api-js
+  npm install
+  npm start
+
+- A API ficará disponível em: http://localhost:3000
+- A conexão padrão do projeto é:
+  Banco: Web
+  Usuário MySQL: root
+  Senha MySQL: vazia
+  Host: 127.0.0.1
+  Porta: 3306
+
+3.1. Iniciar a API Python com o frontend da pasta public
+- Abra um terminal na pasta do projeto e execute:
+
+  cd api_Python
+  py -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  python -m pip install -r requirements.txt
+  python main.py
+
+- Abra o sistema em: http://localhost:5000
+- O Flask agora serve automaticamente os arquivos da pasta public e a API no mesmo endereço.
+- Se o PowerShell bloquear a ativação do ambiente virtual, execute apenas:
+
+  cd api_Python
+  py -m pip install -r requirements.txt
+  py main.py
+
+- Não é necessário iniciar outro servidor para a pasta public.
+
+4. Abrir o frontend
+- Abra outro terminal e execute:
+
+  cd public
+  php -S localhost:8000
+
+- Depois acesse no navegador: http://localhost:8000/login.html
+- Se não tiver PHP instalado, abra o arquivo public\login.html diretamente no navegador.
+
+5. Contas de administrador (ADM)
+
+Conta 1
+E-mail/usuário: thales@gmail.com
+Senha: 12345
+
+Conta 2
+E-mail/usuário: Pedro@gmail.com
+Senha: 87459
+
+Conta 3
+E-mail/usuário: italo@gmail.com
+Senha: 97200
+
+Observação: essas credenciais são as definidas no arquivo docs\banco.sql. Altere-as em ambiente real e não compartilhe este arquivo publicamente.

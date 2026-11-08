@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Eventos - Sistema Paroquial</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      /* Estilização Específica de Eventos */
+      .events-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+        margin-top: 20px;
+      }
+
+      .event-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        border-left: 8px solid #3498db;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .event-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .event-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .status-aberto {
+        background: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+      }
+      .status-fechado {
+        background: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+      }
+      .status-planejado {
+        background: #fffde7;
+        color: #fbc02d;
+        border: 1px solid #fff59d;
+      }
+
+      .event-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 0 0 15px 0;
+        padding-right: 80px;
+      }
+
+      .event-detail {
+        display: flex;
+        align-items: center;
+        color: #7f8c8d;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+
+      .event-detail i {
+        margin-right: 10px;
+        color: #3498db;
+      }
+
+      .event-description {
+        color: #95a5a6;
+        font-size: 15px;
+        line-height: 1.5;
+        margin: 20px 0;
+        flex-grow: 1;
+      }
+
+      .event-footer {
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .vagas-info {
+        font-size: 13px;
+        font-weight: bold;
+        color: #34495e;
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 10px;
+      }
+
+      /* Estilo do Formulário de Cadastro */
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>⛪ Gestão Paroquial</h2>
+      <a href="usuarios.html" id="nav-usuarios">👥 Usuários</a>
+      <a href="ministerios.html">⛪ Ministérios</a>
+      <a href="eventos.html" class="active">📅 Eventos</a>
+      <a href="inscricoes.html">📝 Inscrições</a>
+      <a href="mensagens.html">📢 Mensagens</a>
+      <a href="login.html" style="margin-top: auto; color: #e74c3c">🚪 Sair</a>
+    </div>
+
+    <div class="main-content">
+      <h1 style="font-weight: 800">📅 Calendário de Eventos</h1>
+
+      <div class="card admin-only">
+        <h3 id="form-title">Cadastrar Novo Evento</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Título do Evento</label>
+            <input
+              type="text"
+              id="titulo"
+              placeholder="Ex: Retiro Espiritual"
+            />
+          </div>
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="data" />
+          </div>
+          <div class="form-group">
+            <label>Local</label>
+            <input type="text" id="local" placeholder="Ex: Salão Paroquial" />
+          </div>
+          <div class="form-group">
+            <label>Limite de Vagas</label>
+            <input type="number" id="vagas" />
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="status">
+              <option value="ABERTO">ABERTO</option>
+              <option value="FECHADO">FECHADO</option>
+              <option value="PLANEJADO">PLANEJADO</option>
+            </select>
+          </div>
+          <div class="form-group" style="grid-column: span 2">
+            <label>Descrição Detalhada</label>
+            <textarea
+              id="descricao"
+              rows="3"
+              placeholder="Descreva o evento..."
+            ></textarea>
+          </div>
+        </div>
+        <input type="hidden" id="ev-id" />
+        <div style="margin-top: 10px; display: flex; gap: 10px">
+          <button class="btn-success" onclick="saveEvento()">
+            Salvar Evento
+          </button>
+          <button
+            class="btn-danger"
+            style="background: #95a5a6"
+            onclick="clearForm()"
+          >
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        "
+      >
+        <h3 style="font-weight: 700">Eventos da Comunidade</h3>
+        <button class="btn-primary" onclick="loadEventos()">
+          🔄 Atualizar Lista
+        </button>
+      </div>
+
+      <div id="eventos-grid" class="events-container">
+        <!-- Event Cards via JS -->
+      </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // PUBLIC/EVENTOS.HTML - COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // // txt 1: API_URL http://localhost:8000 | txt 10.A.2 checkAdmin() lê tipoUsuario e esconde .admin-only
+      // Seções 1-10: ver RESPOSTAS_PROJETO.txt (Conexão, JSON, CRUD, Tabela, Permissão Front/Back)
+      // ==============================================================
+      const API_URL = window.API_CONFIG.getBaseUrl();
+
+      function checkAdmin() {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const role = user.tipoUsuario || user.role || "MEMBRO";
+        const isAdm = ["ADM", "ADMINISTRADOR", "ADMINISTRATOR"].includes(
+          role.toUpperCase(),
+        );
+        if (!isAdm) {
+          document
+            .querySelectorAll(".admin-only")
+            .forEach((el) => el.classList.add("hidden"));
+          const n = document.getElementById("nav-usuarios");
+          if (n) n.style.display = "none";
+        }
+      }
+
+      if (!localStorage.getItem("token")) window.location.href = "login.html";
+
+      async function fetchAPI(endpoint, method = "GET", body = null) {
+        const headers = { "Content-Type": "application/json" };
+        const token = localStorage.getItem("token");
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(`${API_URL}${endpoint}`, options);
+        return response.json();
+      }
+
+      async function loadEventos() {
+        try {
+          const data = await fetchAPI("/eventos");
+          const grid = document.getElementById("eventos-grid");
+          grid.innerHTML = "";
+
+          if (data.success && data.data && data.data.eventos) {
+            const eventos = data.data.eventos;
+            const role =
+              JSON.parse(localStorage.getItem("user") || "{}").tipoUsuario ||
+              "MEMBRO";
+
+            eventos.forEach((e) => {
+              const id = e.id_evento || e.idEvento;
+              const status = e.status_evento || e.statusEvento;
+              const statusClass = "status-" + status.toLowerCase();
+
+              grid.innerHTML += `
+                            <div class="event-card">
+                                <span class="event-badge ${statusClass}">${status}</span>
+                                <div class="event-title">${e.titulo}</div>
+                                <div class="event-detail">📅 ${e.data_evento || e.dataEvento}</div>
+                                <div class="event-detail">📍 ${e.local_evento || e.localEvento}</div>
+                                <div class="event-description">${e.descricao || "Sem descrição disponível."}</div>
+                                <div class="event-footer">
+                                    <span class="vagas-info">👥 Vagas: ${e.limite_vagas || e.limiteVagas}</span>
+                                    ${
+                                      role === "ADM"
+                                        ? `
+                                        <div class="btn-group">
+                                            <button class="btn-primary" style="padding: 5px 10px; font-size:12px;" onclick="editEv(${id}, '${e.titulo}', '${e.data_evento || e.dataEvento}', '${e.local_evento || e.localEvento}', ${e.limite_vagas || e.limiteVagas}, '${status}', '${e.descricao}')">Editar</button>
+                                            <button class="btn-danger" style="padding: 5px 10px; font-size:12px;" onclick="deleteEv(${id})">Excluir</button>
+                                        </div>
+                                    `
+                                        : ""
+                                    }
+                                </div>
+                            </div>`;
+            });
+          }
+        } catch (erro) {
+          alert("Erro ao carregar eventos.");
+        }
+      }
+
+      async function saveEvento() {
+        const id = document.getElementById("ev-id").value;
+        const payload = {
+          eventos: {
+            titulo: document.getElementById("titulo").value,
+            data_evento: document.getElementById("data").value,
+            local_evento: document.getElementById("local").value,
+            limite_vagas: parseInt(document.getElementById("vagas").value),
+            status_evento: document.getElementById("status").value,
+            descricao: document.getElementById("descricao").value,
+          },
+        };
+        const method = id ? "PUT" : "POST";
+        const endpoint = id ? `/eventos/${id}` : "/eventos";
+        const result = await fetchAPI(endpoint, method, payload);
+        if (result.success) {
+          alert("Evento salvo!");
+          clearForm();
+          loadEventos();
+        } else {
+          alert("Erro: " + result.message);
+        }
+      }
+
+      function editEv(id, titulo, data, local, vagas, status, desc) {
+        document.getElementById("ev-id").value = id;
+        document.getElementById("titulo").value = titulo;
+        document.getElementById("data").value = data;
+        document.getElementById("local").value = local;
+        document.getElementById("vagas").value = vagas;
+        document.getElementById("status").value = status;
+        document.getElementById("descricao").value = desc;
+        document.getElementById("form-title").innerText =
+          "Editando Evento ID: " + id;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      async function deleteEv(id) {
+        if (!confirm("Excluir evento?")) return;
+        const result = await fetchAPI(`/eventos/${id}`, "DELETE");
+        if (result.success) loadEventos();
+      }
+
+      function clearForm() {
+        document.getElementById("ev-id").value = "";
+        document
+          .querySelectorAll("input, textarea")
+          .forEach((i) => (i.value = ""));
+        document.getElementById("form-title").innerText =
+          "Cadastrar Novo Evento";
+      }
+
+      window.onload = () => {
+        checkAdmin();
+        loadEventos();
+      };
+    </script>
+  </body>
+</html>

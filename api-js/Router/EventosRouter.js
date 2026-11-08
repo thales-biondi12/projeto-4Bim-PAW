@@ -1,0 +1,2 @@
+const body=require('../Middlewares/Eventos/ValidateEventosBody'), ident=require('../Middlewares/Eventos/ValidateEventosId');
+module.exports=c=>{const r=require('express').Router(),b=f=>f.bind(c); r.post('/eventos',body,b(c.createController)); r.get('/eventos',b(c.findAllController)); r.get('/eventos/count',b(c.countController)); r.get('/eventos/:idEvento',ident,b(c.findByIdController)); r.put('/eventos/:idEvento',ident,body,b(c.updateController)); r.delete('/eventos/:idEvento',ident,b(c.deleteController)); return r;};

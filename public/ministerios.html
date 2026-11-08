@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ministérios - Sistema Paroquial</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .min-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+        margin-top: 20px;
+      }
+
+      .min-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        border-left: 8px solid #6a5acd;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+      }
+
+      .min-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+      }
+
+      .min-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #2c3e50;
+        margin-bottom: 10px;
+      }
+
+      .min-detail {
+        color: #7f8c8d;
+        font-size: 14px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+      }
+
+      .min-desc {
+        color: #95a5a6;
+        font-size: 15px;
+        line-height: 1.5;
+        margin: 15px 0;
+        flex-grow: 1;
+      }
+
+      .min-footer {
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn-join {
+        background: #6a5acd;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 13px;
+        cursor: pointer;
+        border: none;
+        font-weight: bold;
+        transition: 0.3s;
+      }
+
+      .btn-join:hover {
+        background: #483d8b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar">
+      <h2>⛪ Gestão Paroquial</h2>
+      <a href="usuarios.html" id="nav-usuarios">👥 Usuários</a>
+      <a href="ministerios.html" class="active">⛪ Ministérios</a>
+      <a href="eventos.html">📅 Eventos</a>
+      <a href="inscricoes.html">📝 Inscrições</a>
+      <a href="mensagens.html">📢 Mensagens</a>
+      <a href="login.html" style="margin-top: auto; color: #e74c3c">🚪 Sair</a>
+    </div>
+
+    <div class="main-content">
+      <h1 style="font-weight: 800">⛪ Nossas Pastorais e Ministérios</h1>
+
+      <div class="card admin-only">
+        <h3 id="form-title">Cadastrar Novo Ministério</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px">
+          <div class="form-group">
+            <label>Nome do Ministério</label>
+            <input type="text" id="nome" />
+          </div>
+          <div class="form-group">
+            <label>Dia da Reunião</label>
+            <input type="text" id="dia_reuniao" />
+          </div>
+          <div class="form-group" style="grid-column: span 2">
+            <label>Descrição</label>
+            <textarea id="descricao" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>ID do Coordenador</label>
+            <input type="number" id="id_coordenador" />
+          </div>
+        </div>
+        <input type="hidden" id="min-id" />
+        <div style="margin-top: 10px">
+          <button class="btn-success" onclick="saveMinisterio()">
+            Salvar Ministério
+          </button>
+          <button
+            class="btn-danger"
+            style="background: #95a5a6"
+            onclick="clearForm()"
+          >
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        "
+      >
+        <h3 style="font-weight: 700">Explore Nossos Ministérios</h3>
+        <button class="btn-primary" onclick="loadMinisterios()">
+          🔄 Atualizar Lista
+        </button>
+      </div>
+
+      <div class="card admin-only" id="card-vincular">
+        <h3>➕ Inscrever Membro em Ministério (ADM)</h3>
+        <div
+          style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px"
+        >
+          <div class="form-group">
+            <label>Membro</label
+            ><select id="vinc-usuario"></select>
+          </div>
+          <div class="form-group">
+            <label>Ministério</label
+            ><select id="vinc-ministerio"></select>
+          </div>
+          <div class="form-group">
+            <label>Função</label
+            ><input
+              id="vinc-funcao"
+              placeholder="Ex: Vocalista"
+              value="Membro"
+            />
+          </div>
+        </div>
+        <button class="btn-success" onclick="vincular()">Inscrever</button>
+        <div style="margin-top: 15px">
+          <h4>Membros já vinculados</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Membro</th>
+                <th>Ministério</th>
+                <th>Função</th>
+                <th>Data</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="vinc-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="min-grid" class="min-container">
+        <!-- Cards de Ministérios via JS -->
+      </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // PUBLIC/MINISTERIOS.HTML - COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // // txt 1: API_URL | txt 10.A.2 checkAdmin + 10.A.4 botão Quero Participar vs Editar/Excluir
+      // Seções 1-10: ver RESPOSTAS_PROJETO.txt (Conexão, JSON, CRUD, Tabela, Permissão Front/Back)
+      // ==============================================================
+      const API_URL = window.API_CONFIG.getBaseUrl();
+
+      function checkAdmin() {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const role = (user.tipoUsuario || user.role || "MEMBRO").toUpperCase();
+        const isAdm = ["ADM", "ADMINISTRADOR", "ADMINISTRATOR"].includes(role);
+        if (!isAdm) {
+          document
+            .querySelectorAll(".admin-only")
+            .forEach((el) => el.classList.add("hidden"));
+          const navU = document.getElementById("nav-usuarios");
+          if (navU) navU.style.display = "none";
+        }
+      }
+
+      if (!localStorage.getItem("token")) window.location.href = "login.html";
+
+      async function fetchAPI(endpoint, method = "GET", body = null) {
+        const headers = { "Content-Type": "application/json" };
+        const token = localStorage.getItem("token");
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(`${API_URL}${endpoint}`, options);
+        return response.json();
+      }
+
+      async function loadMinisterios() {
+        try {
+          const data = await fetchAPI("/ministerios");
+          const grid = document.getElementById("min-grid");
+          grid.innerHTML = "";
+
+          if (data.success && data.data && data.data.ministerios) {
+            const mins = data.data.ministerios;
+            const role =
+              JSON.parse(localStorage.getItem("user") || "{}").tipoUsuario ||
+              "MEMBRO";
+
+            mins.forEach((m) => {
+              const id = m.idMinisterios || m.id_ministerios;
+              const nome = m.nome;
+              const dia = m.diaReuniao || m.dia_reuniao;
+              const desc = m.descricao;
+              const coord =
+                m.nomeCoordenador ||
+                m.nome_coordenador ||
+                m.idCoordenador ||
+                m.id_coordenador;
+
+              const idCoord = m.idCoordenador || m.id_coordenador || 0;
+              grid.innerHTML += `
+                            <div class="min-card">
+                                <div class="min-title">${nome}</div>
+                                <div class="min-detail">📅 ${dia}</div>
+                                <div class="min-detail">👤 Coord: ${coord}</div>
+                                <div class="min-desc">${desc || "Sem descrição disponível."}</div>
+                                <div class="min-footer">
+                                    ${
+                                      role !== "ADM"
+                                        ? `
+                                        <button class="btn-join" onclick="requestJoin(${id}, '${nome}')">Quero Participar</button>
+                                    `
+                                        : `
+                                        <div class="btn-group">
+                                            <button class="btn-primary" style="padding: 5px 10px; font-size:12px;" onclick="editMin(${id}, '${nome.replace(/'/g, "\\'")}', '${String(dia || "").replace(/'/g, "\\'")}', '${String(desc || "").replace(/'/g, "\\'")}', ${idCoord})">Editar</button>
+                                            <button class="btn-danger" style="padding: 5px 10px; font-size:12px;" onclick="deleteMin(${id})">Excluir</button>
+                                        </div>
+                                    `
+                                    }
+                                </div>
+                            </div>`;
+            });
+          }
+        } catch (erro) {
+          alert("Erro ao carregar ministérios.");
+        }
+      }
+
+      async function requestJoin(id, nome) {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (!user.idUsuario && !user.id_usuarios) {
+          alert("Erro: Usuário não identificado. Tente fazer login novamente.");
+          return;
+        }
+
+        // CORREÇÃO DOS NOMES DOS CAMPOS PARA BATER COM O Controller de Mensagens
+        const payload = {
+          mensagens: {
+            titulo: "Pedido de Participação",
+            conteudo: `Olá ADM, eu (${user.nomeUsuario || user.nome}) gostaria de participar do ministério ${nome}.`,
+            usuarioId: user.idUsuario || user.id_usuarios,
+            dataPostagem: new Date().toISOString().split("T")[0],
+          },
+        };
+
+        const result = await fetchAPI("/mensagens", "POST", payload);
+        if (result.success) {
+          alert(`Pedido enviado! O coordenador do ${nome} entrará em contato.`);
+        } else {
+          alert(
+            "Erro ao enviar pedido: " + (result.message || "Erro desconhecido"),
+          );
+        }
+      }
+
+      async function saveMinisterio() {
+        const id = document.getElementById("min-id").value;
+        const payload = {
+          ministerios: {
+            nome: document.getElementById("nome").value,
+            dia_reuniao: document.getElementById("dia_reuniao").value,
+            descricao: document.getElementById("descricao").value,
+            id_coordenador: parseInt(
+              document.getElementById("id_coordenador").value,
+            ),
+          },
+        };
+        const method = id ? "PUT" : "POST";
+        const endpoint = id ? `/ministerios/${id}` : "/ministerios";
+        const result = await fetchAPI(endpoint, method, payload);
+        if (result.success) {
+          alert("Ministério salvo!");
+          clearForm();
+          loadMinisterios();
+        } else {
+          alert("Erro: " + result.message);
+        }
+      }
+
+      function editMin(id, nome, dia, desc, coord) {
+        document.getElementById("min-id").value = id;
+        document.getElementById("nome").value = nome;
+        document.getElementById("dia_reuniao").value = dia;
+        document.getElementById("descricao").value = desc;
+        document.getElementById("id_coordenador").value = coord;
+        document.getElementById("form-title").innerText =
+          "Editando Ministério ID: " + id;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      async function deleteMin(id) {
+        if (!confirm("Excluir ministério?")) return;
+        const result = await fetchAPI(`/ministerios/${id}`, "DELETE");
+        if (result.success) loadMinisterios();
+      }
+
+      function clearForm() {
+        document.getElementById("min-id").value = "";
+        document
+          .querySelectorAll("input, textarea")
+          .forEach((i) => (i.value = ""));
+        document.getElementById("form-title").innerText =
+          "Cadastrar Novo Ministério";
+      }
+
+      async function loadVinculos() {
+        const u = await fetchAPI("/usuarios");
+        if (u.success) {
+          document.getElementById("vinc-usuario").innerHTML = (
+            u.data.usuarios || []
+          )
+            .map(
+              (x) =>
+                `<option value="${x.idUsuario || x.id_usuarios}">${x.nomeUsuario || x.nome}</option>`,
+            )
+            .join("");
+        }
+        const m = await fetchAPI("/ministerios");
+        if (m.success) {
+          document.getElementById("vinc-ministerio").innerHTML = (
+            m.data.ministerios || []
+          )
+            .map(
+              (x) =>
+                `<option value="${x.idMinisterios || x.id_ministerios}">${x.nome}</option>`,
+            )
+            .join("");
+        }
+        const v = await fetchAPI("/usuarios-ministerios");
+        const tb = document.getElementById("vinc-table");
+        if (tb) {
+          tb.innerHTML = "";
+          if (v.success)
+            (v.data.vinculos || []).forEach((r) => {
+              tb.innerHTML += `<tr><td>${r.nomeUsuario}</td><td>${r.nomeMinisterio}</td><td>${r.funcao}</td><td>${r.dataEntrada}</td><td><button class="btn-danger" onclick="desvincular(${r.id})">Remover</button></td></tr>`;
+            });
+        }
+      }
+      async function vincular() {
+        const payload = {
+          inscricao: {
+            idUsuario: parseInt(document.getElementById("vinc-usuario").value),
+            idMinisterio: parseInt(
+              document.getElementById("vinc-ministerio").value,
+            ),
+            funcao: document.getElementById("vinc-funcao").value,
+          },
+        };
+        const r = await fetchAPI("/usuarios-ministerios", "POST", payload);
+        alert(r.success ? "Inscrito!" : r.message);
+        if (r.success) loadVinculos();
+      }
+      async function desvincular(id) {
+        if (!confirm("Remover?")) return;
+        const r = await fetchAPI("/usuarios-ministerios/" + id, "DELETE");
+        if (r.success) loadVinculos();
+      }
+      window.onload = () => {
+        checkAdmin();
+        loadMinisterios();
+        if (
+          ["ADM", "ADMINISTRADOR", "ADMINISTRATOR"].includes(
+            String(
+              JSON.parse(localStorage.getItem("user") || "{}").tipoUsuario ||
+                "",
+            ).toUpperCase(),
+          )
+        )
+          loadVinculos();
+      };
+    </script>
+  </body>
+</html>

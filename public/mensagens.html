@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mensagens</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="sidebar">
+      <h2>⛪ Gestão Paroquial</h2>
+      <a href="usuarios.html" id="nav-usuarios">👥 Usuários</a
+      ><a href="ministerios.html">⛪ Ministérios</a
+      ><a href="eventos.html">📅 Eventos</a
+      ><a href="inscricoes.html">📝 Inscrições</a
+      ><a href="mensagens.html" class="active">📢 Mensagens</a
+      ><a href="login.html" style="margin-top: auto; color: #e74c3c">🚪 Sair</a>
+    </div>
+    <div class="main-content">
+      <h1>📢 Mensagens</h1>
+      <div class="card" id="card-form-adm" style="display: none">
+        <h3 id="form-title">Nova Mensagem (somente ADM)</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px">
+          <div class="form-group" style="grid-column: span 2">
+            <label>Título</label><input id="titulo" />
+          </div>
+          <div class="form-group" style="grid-column: span 2">
+            <label>Conteúdo</label><textarea id="conteudo" rows="3"></textarea>
+          </div>
+        </div>
+        <input type="hidden" id="msg-id" />
+        <button class="btn-success" onclick="saveMensagem()">
+          Enviar Mensagem
+        </button>
+        <button
+          class="btn-danger"
+          style="background: #95a5a6"
+          onclick="clearForm()"
+        >
+          Limpar
+        </button>
+      </div>
+      <p id="msg-nao-adm" style="display: none" class="card">
+        🔒 Apenas administradores podem enviar mensagens. Você pode visualizar
+        abaixo.
+      </p>
+      <div class="card">
+        <div style="display: flex; justify-content: space-between">
+          <h3>Mural de Mensagens</h3>
+          <button class="btn-primary" onclick="loadMensagens()">
+            🔄 Atualizar
+          </button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Conteúdo</th>
+              <th>Data</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="msg-table"></tbody>
+        </table>
+      </div>
+    </div>
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // PUBLIC/MENSAGENS.HTML - COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // // txt 1: API_URL | txt 10 isAdm mostra form ADM | txt 7 tabela mural
+      // Seções 1-10: ver RESPOSTAS_PROJETO.txt (Conexão, JSON, CRUD, Tabela, Permissão Front/Back)
+      // ==============================================================
+      const API_URL = window.API_CONFIG.getBaseUrl();
+      if (!localStorage.getItem("token")) location.href = "login.html";
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const isAdm = ["ADM", "ADMINISTRADOR", "ADMINISTRATOR"].includes(
+        String(
+          user.tipoUsuario || user.tipo_usuario || user.role || "",
+        ).toUpperCase(),
+      );
+      if (isAdm)
+        document.getElementById("card-form-adm").style.display = "block";
+      else {
+        document.getElementById("msg-nao-adm").style.display = "block";
+        document.getElementById("nav-usuarios").style.display = "none";
+      }
+      async function fetchAPI(e, m = "GET", b = null) {
+        const h = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        };
+        const o = { method: m, headers: h };
+        if (b) o.body = JSON.stringify(b);
+        const r = await fetch(API_URL + e, o);
+        const j = await r.json();
+        if (!r.ok) console.error("API erro", r.status, j);
+        return j;
+      }
+      async function loadMensagens() {
+        const data = await fetchAPI("/mensagens");
+        const tb = document.getElementById("msg-table");
+        tb.innerHTML = "";
+        if (!data.success) {
+          tb.innerHTML = `<tr><td colspan=4 style="color:red">${data.message || JSON.stringify(data)}</td></tr>`;
+          return;
+        }
+        (data.data.mensagens || []).forEach((m) => {
+          const id = m.id_mensagens || m.idMensagens;
+          tb.innerHTML += `<tr><td><strong>${m.titulo}</strong></td><td style="max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${String(m.conteudo).replace(/"/g, "&quot;")}">${m.conteudo}</td><td style="white-space:nowrap">${m.data_postagem || m.dataPostagem}</td><td class="actions-cell">${isAdm ? `<div class="actions"><button class="btn-sm btn-edit" onclick="editMsg(${id},'${String(m.titulo).replace(/'/g, "\\'")}','${String(m.conteudo).replace(/'/g, "\\'")}')">✏️ Editar</button><button class="btn-sm btn-danger" onclick="deleteMsg(${id})">🗑️ Excluir</button></div>` : '<span style="color:var(--muted)">—</span>'}</td></tr>`;
+        });
+      }
+      async function saveMensagem() {
+        const id = document.getElementById("msg-id").value;
+        const payload = {
+          mensagens: {
+            titulo: document.getElementById("titulo").value,
+            conteudo: document.getElementById("conteudo").value,
+          },
+        };
+        const r = await fetchAPI(
+          id ? `/mensagens/${id}` : "/mensagens",
+          id ? "PUT" : "POST",
+          payload,
+        );
+        alert(
+          r.message || (r.success ? "Enviado!" : "Erro: " + JSON.stringify(r)),
+        );
+        if (r.success) {
+          clearForm();
+          loadMensagens();
+        }
+      }
+      function editMsg(id, t, c) {
+        document.getElementById("msg-id").value = id;
+        document.getElementById("titulo").value = t;
+        document.getElementById("conteudo").value = c;
+      }
+      async function deleteMsg(id) {
+        if (!confirm("Excluir?")) return;
+        const r = await fetchAPI(`/mensagens/${id}`, "DELETE");
+        if (r.success) loadMensagens();
+      }
+      function clearForm() {
+        document.getElementById("msg-id").value = "";
+        document.getElementById("titulo").value = "";
+        document.getElementById("conteudo").value = "";
+      }
+      window.onload = loadMensagens;
+    </script>
+  </body>
+</html>

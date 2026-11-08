@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cadastro - Sistema Paroquial</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="login-container">
+    <div class="login-card" style="width: min(480px, 100%)">
+      <h2>⛪ Criar Conta</h2>
+      <p>Preencha os dados para se juntar à comunidade</p>
+
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          text-align: left;
+        "
+        class="cad-grid"
+      >
+        <div class="form-group" style="grid-column: span 2">
+          <label>Nome Completo</label>
+          <input type="text" id="nome" />
+        </div>
+        <div class="form-group" style="grid-column: span 2">
+          <label>Email</label>
+          <input type="email" id="email" />
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="senha" />
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="text" id="tel" />
+        </div>
+        <div class="form-group">
+          <label>Tipo de Conta</label>
+          <select id="tipo">
+            <option value="MEMBRO">Membro</option>
+            <option value="VISITANTE">Visitante</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data Nascimento</label>
+          <input type="date" id="data_nasc" />
+        </div>
+      </div>
+
+      <button
+        class="btn-primary full"
+        style="margin-top: 20px"
+        onclick="doRegister()"
+      >
+        Cadastrar
+      </button>
+      <p style="margin-top: 15px">
+        Já tem conta? <a href="login.html" style="color: #3498db">Faça login</a>
+      </p>
+      <p id="msg" style="color: red; margin-top: 10px"></p>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script>
+      // ==============================================================
+      // CADASTRO.HTML - JS COMENTADO CONFORME RESPOSTAS_PROJETO.txt
+      // Seção 3 do txt: COMO CADASTRA
+      // ==============================================================
+
+      /**
+       * doRegister() - txt Seção 3: COMO CADASTRA
+       * FRONT: 1) pega inputs via getElementById 2) monta payload { usuarios: {...} } 3) fetch POST /usuarios
+       * BACK: txt 3/8 -> public/index.php (BodyParsing) -> Router/UsuariosRouter.php POST /usuarios
+       *       -> Middlewares/Usuarios/ValidateUsuariosBody.php -> Controller createController()
+       *       -> Services/UsuariosService.php -> Dao/UsuariosDao.php INSERT INTO usuarios
+       *       Resposta 201 { success:true } -> redireciona para login.html
+       * Seção 2: JSON.stringify + Content-Type: application/json
+       */
+      async function doRegister() {
+        const msg = document.getElementById("msg");
+        const payload = {
+          usuarios: {
+            nomeUsuario: document.getElementById("nome").value,
+            email: document.getElementById("email").value,
+            senha: document.getElementById("senha").value,
+            tel: document.getElementById("tel").value,
+            tipoUsuario: document.getElementById("tipo").value,
+            data_nasc: document.getElementById("data_nasc").value,
+          },
+        };
+
+        try {
+          const response = await fetch(`${window.API_CONFIG.getBaseUrl()}/usuarios`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            alert("Cadastro realizado com sucesso! Agora faça login.");
+            window.location.href = "login.html";
+          } else {
+            msg.innerText = data.message || "Erro ao cadastrar";
+          }
+        } catch (erro) {
+          msg.innerText = "Erro de conexão com o servidor";
+        }
+      }
+    </script>
+  </body>
+</html>
