@@ -53,7 +53,7 @@ class UsuariosRouter:
             validate_adm(req, lambda req2:
                 validate_usuarios_id(req2, lambda req3:
                     validate_usuarios_body(req3, lambda req4:
-                        self.controller.update_controller(req4, idUsuario)))))
+                        self.controller.update_controller(req4, idUsuario), require_password=False))))
 
     def delete_route(self, idUsuario):
         from flask import request

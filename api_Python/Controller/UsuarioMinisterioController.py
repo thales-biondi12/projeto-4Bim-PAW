@@ -53,6 +53,23 @@ class UsuarioMinisterioController:
         lista = self.dao.find_all()
         return jsonify({"success": True, "data": {"vinculos": [v.to_dict() for v in lista]}}), 200
 
+    def find_by_id(self, req, id_vinculo):
+        v = self.dao.find_by_id(int(id_vinculo))
+        if not v: raise ErrorResponse(404, 'Vínculo não encontrado', {})
+        return jsonify({'success': True, 'data': {'vinculo': v.to_dict()}}), 200
+
+    def count(self, req):
+        return jsonify({'success': True, 'data': {'count': self.dao.count()}}), 200
+
+    def update(self, req, id_vinculo):
+        v = self.dao.find_by_id(int(id_vinculo))
+        if not v: raise ErrorResponse(404, 'Vínculo não encontrado', {})
+        b = req.get_json() or {}; uid=int(b.get('idUsuario', v.get_id_usuario())); mid=int(b.get('idMinisterio', v.get_id_ministerio()))
+        if not self.u_dao.find_by_id(uid) or not self.m_dao.find_by_id(mid): raise ErrorResponse(400, 'Usuário ou ministério não encontrado', {})
+        if self.dao.exists_other(uid, mid, int(id_vinculo)): raise ErrorResponse(400, 'Vínculo duplicado', {})
+        v.set_id_usuario(uid); v.set_id_ministerio(mid); v.set_data_entrada(b.get('dataEntrada', v.get_data_entrada())); v.set_funcao(b.get('funcao', v.get_funcao())); self.dao.update(v)
+        return jsonify({'success': True, 'data': {'vinculo': v.to_dict()}}), 200
+
     def delete(self, req, id_vinculo):
         logging.info("🔵 UsuarioMinisterioController::delete")
         ok = self.dao.delete(int(id_vinculo))

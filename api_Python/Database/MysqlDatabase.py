@@ -1,6 +1,7 @@
 import mysql.connector
 from mysql.connector import Error
 import logging
+import os
 
 class MysqlDatabase:
     """
@@ -15,11 +16,13 @@ class MysqlDatabase:
         if config is None:
             config = {}
 
-        self.host = config.get("host", "127.0.0.1")
-        self.user = config.get("user", "root")
-        self.password = config.get("password", "")
-        self.database = config.get("database", "Web")
-        self.port = config.get("port", 3306)
+        # Permite configurar a API sem alterar o código.  Os nomes com
+        # MYSQL_* são compatíveis com instalações locais e Docker.
+        self.host = config.get("host") or os.getenv("MYSQL_HOST", "127.0.0.1")
+        self.user = config.get("user") or os.getenv("MYSQL_USER", "root")
+        self.password = config.get("password") if "password" in config else os.getenv("MYSQL_PASSWORD", "")
+        self.database = config.get("database") or os.getenv("MYSQL_DATABASE", "web")
+        self.port = int(config.get("port") or os.getenv("MYSQL_PORT", "3306"))
 
     def get_connection(self):
         """
@@ -30,6 +33,19 @@ class MysqlDatabase:
         Raises:
             Exception: Se houver falha na conexão.
         """
+        # Reabre a conexão quando o MySQL encerra o singleton por inatividade.
+        if MysqlDatabase._connection is not None:
+            try:
+                if MysqlDatabase._connection.is_connected():
+                    return MysqlDatabase._connection
+            except Exception:
+                pass
+            try:
+                MysqlDatabase._connection.close()
+            except Exception:
+                pass
+            MysqlDatabase._connection = None
+
         if MysqlDatabase._connection is None:
             try:
                 MysqlDatabase._connection = mysql.connector.connect(

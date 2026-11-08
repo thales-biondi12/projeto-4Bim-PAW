@@ -51,6 +51,10 @@ class UsuarioMinisterioDao {
         return listaVinculos;
     }
 
+    async findById(id) { return (await this.findAll()).find(v => v.getId() === Number(id)) || null; }
+    async count() { const c=await this.db.getConnection(); const [r]=await c.execute('SELECT COUNT(*) qtd FROM usuarios_ministerios'); return Number(r[0]?.qtd||0); }
+    async update(v) { const c=await this.db.getConnection(); const [r]=await c.execute('UPDATE usuarios_ministerios SET id_usuario=?,id_ministerio=?,data_entrada=?,funcao=? WHERE id_usuarios_ministerios=?',[v.getIdUsuario(),v.getIdMinisterio(),v.getDataEntrada(),v.getFuncao(),v.getId()]); return r.affectedRows>0; }
+
     async delete(id) {
         const sql = "DELETE FROM usuarios_ministerios WHERE id_usuarios_ministerios = ?";
         const conn = await this.db.getConnection();
@@ -64,6 +68,7 @@ class UsuarioMinisterioDao {
         const [rows] = await conn.execute(sql, [idUsuario, idMinisterio]);
         return rows.length > 0;
     }
+    async existsOther(u,m,id) { const c=await this.db.getConnection(); const [r]=await c.execute('SELECT 1 FROM usuarios_ministerios WHERE id_usuario=? AND id_ministerio=? AND id_usuarios_ministerios<>?',[u,m,id]); return r.length>0; }
 }
 
 module.exports = UsuarioMinisterioDao;

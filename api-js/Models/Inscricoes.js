@@ -47,7 +47,12 @@ class Inscricoes {
     }
 
     setDataInscricao(value) {
-        const data = value.trim();
+        if (!value) {
+            throw new Error("dataInscricao nao pode ser vazia.");
+        }
+        const data = value instanceof Date
+            ? value.toISOString().slice(0, 10)
+            : String(value).trim();
         if (data === "") {
             throw new Error("dataInscricao nao pode ser vazia.");
         }
@@ -59,7 +64,7 @@ class Inscricoes {
     }
 
     setPresenca(value) {
-        const presenca = value.trim();
+        const presenca = String(value ?? '').trim();
         if (presenca === "") {
             throw new Error("presenca nao pode ser vazia.");
         }

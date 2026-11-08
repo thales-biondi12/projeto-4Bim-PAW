@@ -31,7 +31,8 @@ class UsuariosDao {
 
     async delete(objUsuariosModel) {
         console.log("🟢 UsuariosDAO::delete()");
-        const conn = await this.database.getConnection();
+        const pool = await this.database.getConnection();
+        const conn = await pool.getConnection();
         const id = objUsuariosModel.getIdUsuarios();
 
         try {
@@ -56,9 +57,11 @@ class UsuariosDao {
             await conn.commit();
             return result.affectedRows > 0;
         } catch (e) {
-            await conn.rollback();
+            await conn.rollback().catch(() => {});
             console.error("Erro delete usuario: " + e.message);
             throw new Error("Erro ao excluir usuário: " + e.message);
+        } finally {
+            conn.release();
         }
     }
 

@@ -232,16 +232,20 @@
       async function loadUsers() {
         log("Buscando usuários em: " + API_URL + "/usuarios...");
         try {
-          const res = await fetch(`${API_URL}/usuarios`);
+          const token = localStorage.getItem("token");
+          const res = await fetch(`${API_URL}/usuarios`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          });
           const data = await res.json();
           log("Resposta da API: " + JSON.stringify(data));
 
           const tbody = document.getElementById("tbody-usuarios");
           tbody.innerHTML = "";
 
-          if (data.success && data.data) {
-            log(`${data.data.length} usuários encontrados.`, "success");
-            data.data.forEach((u) => {
+          const usuarios = Array.isArray(data?.data?.usuarios) ? data.data.usuarios : (Array.isArray(data?.data) ? data.data : []);
+          if (data.success && usuarios.length) {
+            log(`${usuarios.length} usuários encontrados.`, "success");
+            usuarios.forEach((u) => {
               tbody.innerHTML += `<tr>
                         <td>${u.id_usuarios}</td>
                         <td>${u.nome}</td>
@@ -349,14 +353,15 @@
           const data = await res.json();
           const tbody = document.getElementById("tbody-ministerios");
           tbody.innerHTML = "";
-          if (data.success && data.data) {
-            data.data.forEach((m) => {
+          const ministerios = Array.isArray(data?.data?.ministerios) ? data.data.ministerios : (Array.isArray(data?.data) ? data.data : []);
+          if (data.success && ministerios.length) {
+            ministerios.forEach((m) => {
               tbody.innerHTML += `<tr><td>${m.id_ministerios}</td><td>${m.nome}</td><td>${m.dia_reuniao}</td></tr>`;
             });
             log("Ministérios carregados.", "success");
           }
-        } catch (erro) {
-          log("Erro ao carregar ministérios: " + e.message, "error");
+          } catch (erro) {
+          log("Erro ao carregar ministérios: " + erro.message, "error");
         }
       }
 
@@ -367,8 +372,9 @@
           const data = await res.json();
           const tbody = document.getElementById("tbody-eventos");
           tbody.innerHTML = "";
-          if (data.success && data.data) {
-            data.data.forEach((e) => {
+          const eventos = Array.isArray(data?.data?.eventos) ? data.data.eventos : (Array.isArray(data?.data) ? data.data : []);
+          if (data.success && eventos.length) {
+            eventos.forEach((e) => {
               tbody.innerHTML += `<tr><td>${e.id_evento}</td><td>${e.titulo}</td><td>${e.data_evento}</td></tr>`;
             });
             log("Eventos carregados.", "success");

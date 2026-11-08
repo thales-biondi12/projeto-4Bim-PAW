@@ -151,7 +151,7 @@
         const options = { method, headers };
         if (body) options.body = JSON.stringify(body);
         const response = await fetch(`${API_URL}${endpoint}`, options);
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         if (response.status === 401) {
           alert("Sessão expirada. Faça login novamente.");
           localStorage.clear();
@@ -159,6 +159,9 @@
         }
         if (response.status === 403) {
           alert(data.message || "Apenas ADM pode excluir usuários");
+        }
+        if (!response.ok) {
+          throw new Error(data.message || `Erro HTTP ${response.status}`);
         }
         return data;
       }
@@ -176,8 +179,11 @@
           if (!tbody) return;
           tbody.innerHTML = "";
 
-          if (data.success && data.data && data.data.usuarios) {
-            data.data.usuarios.forEach((u) => {
+          const usuarios = Array.isArray(data?.data?.usuarios)
+            ? data.data.usuarios
+            : Array.isArray(data?.data) ? data.data : [];
+          if (data.success && usuarios.length) {
+            usuarios.forEach((u) => {
               const id = u.idUsuario || u.id_usuarios;
               const nome = u.nomeUsuario || u.nome;
               const email = u.email;
@@ -197,7 +203,8 @@
             applyPermissions();
           }
         } catch (erro) {
-          console.error(e);
+          console.error("Erro ao carregar usuários:", erro);
+          alert("Não foi possível carregar os usuários: " + erro.message);
         }
       }
 
@@ -239,7 +246,7 @@
         document.getElementById("tel").value = tel;
         document.getElementById("tipo").value = tipo;
         document.getElementById("data_nasc").value = data;
-        document.getElementById("form-title").innerText =
+        document.querySelector(".admin-only h3").innerText =
           "Editando Usuário ID: " + id;
       }
 
@@ -262,8 +269,8 @@
             console.error(result);
           }
         } catch (erro) {
-          alert("Erro de conexão ao excluir: " + e.message);
-          console.error(e);
+          alert("Erro de conexão ao excluir: " + erro.message);
+          console.error(erro);
         }
       }
 
@@ -271,7 +278,7 @@
       function clearForm() {
         document.getElementById("user-id").value = "";
         document.querySelectorAll("input").forEach((i) => (i.value = ""));
-        document.getElementById("form-title").innerText =
+        document.querySelector(".admin-only h3").innerText =
           "Cadastrar Novo Usuário";
       }
 

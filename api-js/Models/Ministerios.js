@@ -24,7 +24,7 @@ class Ministerios {
     }
 
     setNome(value) {
-        const nome = value.trim();
+        const nome = String(value ?? '').trim();
         if (nome === "") {
             throw new Error("nome nao pode ser vazio.");
         }
@@ -42,7 +42,7 @@ class Ministerios {
     }
 
     setDescricao(value) {
-        this.descricao = value ? value.trim() : "";
+        this.descricao = value ? String(value).trim() : "";
     }
 
     getDiaReuniao() {
@@ -50,7 +50,7 @@ class Ministerios {
     }
 
     setDiaReuniao(value) {
-        const dia = value.trim();
+        const dia = String(value ?? '').trim();
         if (dia === "") {
             throw new Error("diaReuniao nao pode ser vazio.");
         }

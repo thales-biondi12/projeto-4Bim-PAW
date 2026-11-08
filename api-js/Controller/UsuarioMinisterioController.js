@@ -68,6 +68,9 @@ class UsuarioMinisterioController {
             }
         });
     }
+    async findById(req,res) { const v=await this.dao.findById(req.params.id); if(!v)return res.status(404).json({success:false}); return res.json({success:true,data:{vinculo:v.toJSON()}}); }
+    async count(req,res) { return res.json({success:true,data:{count:await this.dao.count()}}); }
+    async update(req,res) { const v=await this.dao.findById(req.params.id); if(!v)return res.status(404).json({success:false}); const b=req.body||{}; const u=Number(b.idUsuario??v.getIdUsuario()),m=Number(b.idMinisterio??v.getIdMinisterio()); if(!(await this.uDao.findById(u))||!(await this.mDao.findById(m)))return res.status(400).json({success:false,message:'Usuário ou ministério não encontrado'}); if(await this.dao.existsOther(u,m,Number(req.params.id)))return res.status(400).json({success:false,message:'Vínculo duplicado'}); v.setIdUsuario(u);v.setIdMinisterio(m);v.setDataEntrada(b.dataEntrada??v.getDataEntrada());v.setFuncao(b.funcao??v.getFuncao());await this.dao.update(v);return res.json({success:true,data:{vinculo:v.toJSON()}}); }
 
     async delete(req, res) {
         const id = parseInt(req.params.id);

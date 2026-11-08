@@ -23,7 +23,7 @@ class Mensagens {
     }
 
     setTitulo(value) {
-        const titulo = value.trim();
+        const titulo = String(value ?? '').trim();
         if (titulo === "") {
             throw new Error("titulo nao pode ser vazio.");
         }
@@ -41,7 +41,7 @@ class Mensagens {
     }
 
     setConteudo(value) {
-        const conteudo = value.trim();
+        const conteudo = String(value ?? '').trim();
         if (conteudo === "") {
             throw new Error("conteudo nao pode ser vazio.");
         }

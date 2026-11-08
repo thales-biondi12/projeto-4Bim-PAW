@@ -56,6 +56,19 @@ class UsuarioMinisterioDao:
 
         return lista_vinculos
 
+    def find_by_id(self, id_vinculo: int) -> Optional[UsuarioMinisterio]:
+        return next((v for v in self.find_all() if v.get_id() == int(id_vinculo)), None)
+
+    def count(self) -> int:
+        conn = self.db.get_connection(); cursor = conn.cursor(dictionary=True)
+        cursor.execute('SELECT COUNT(*) AS qtd FROM usuarios_ministerios')
+        row = cursor.fetchone(); return int(row['qtd']) if row else 0
+
+    def update(self, vinculo: UsuarioMinisterio) -> bool:
+        conn = self.db.get_connection(); cursor = conn.cursor()
+        cursor.execute('UPDATE usuarios_ministerios SET id_usuario=%s,id_ministerio=%s,data_entrada=%s,funcao=%s WHERE id_usuarios_ministerios=%s', (vinculo.get_id_usuario(), vinculo.get_id_ministerio(), vinculo.get_data_entrada(), vinculo.get_funcao(), vinculo.get_id()))
+        conn.commit(); return cursor.rowcount > 0
+
     def delete(self, id_vinculo: int) -> bool:
         logging.info("🟢 UsuarioMinisterioDao::delete")
         sql = "DELETE FROM usuarios_ministerios WHERE id_usuarios_ministerios = %s"
@@ -75,4 +88,9 @@ class UsuarioMinisterioDao:
         cursor = conn.cursor()
         cursor.execute(sql, (id_usuario, id_ministerio))
 
+        return cursor.fetchone() is not None
+
+    def exists_other(self, id_usuario: int, id_ministerio: int, id_vinculo: int) -> bool:
+        conn = self.db.get_connection(); cursor = conn.cursor()
+        cursor.execute('SELECT 1 FROM usuarios_ministerios WHERE id_usuario=%s AND id_ministerio=%s AND id_usuarios_ministerios<>%s', (id_usuario,id_ministerio,id_vinculo))
         return cursor.fetchone() is not None

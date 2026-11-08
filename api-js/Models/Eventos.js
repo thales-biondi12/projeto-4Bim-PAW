@@ -25,7 +25,7 @@ class Eventos {
     }
 
     setTitulo(value) {
-        const titulo = value.trim();
+        const titulo = String(value ?? '').trim();
         if (titulo === "") {
             throw new Error("titulo nao pode ser vazio.");
         }
@@ -43,7 +43,7 @@ class Eventos {
     }
 
     setDescricao(value) {
-        const descricao = value.trim();
+        const descricao = String(value ?? '').trim();
         if (descricao === "") {
             throw new Error("descricao nao pode ser vazia.");
         }
@@ -70,7 +70,7 @@ class Eventos {
     }
 
     setLocalEvento(value) {
-        const local = value.trim();
+        const local = String(value ?? '').trim();
         if (local === "") {
             throw new Error("localEvento nao pode ser vazio.");
         }
@@ -93,7 +93,7 @@ class Eventos {
     }
 
     setStatusEvento(value) {
-        const status = value.trim();
+        const status = String(value ?? '').trim();
         if (status === "") {
             throw new Error("statusEvento nao pode ser vazio.");
         }

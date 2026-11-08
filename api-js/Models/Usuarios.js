@@ -33,7 +33,7 @@ class Usuarios {
     }
 
     setNomeUsuario(value) {
-        const nome = value.trim();
+        const nome = String(value ?? '').trim();
         if (nome === "") {
             throw new Error("nomeUsuario nao pode ser vazio.");
         }
@@ -51,7 +51,7 @@ class Usuarios {
     }
 
     setEmail(email) {
-        const emailTrimmed = email.trim();
+        const emailTrimmed = String(email ?? '').trim();
         if (emailTrimmed === "") {
             throw new Error("email nao pode ser vazio.");
         }
@@ -68,10 +68,10 @@ class Usuarios {
     }
 
     setSenha(senha) {
-        if (senha.trim() === "") {
+        if (String(senha ?? '').trim() === "") {
             throw new Error("senha nao pode ser vazia.");
         }
-        this.senha = senha;
+        this.senha = String(senha);
     }
 
     getSenha() {
@@ -79,7 +79,7 @@ class Usuarios {
     }
 
     setTel(tel) {
-        this.tel = tel ? tel.trim() : "";
+        this.tel = tel ? String(tel).trim() : "";
     }
 
     getTel() {
@@ -87,7 +87,7 @@ class Usuarios {
     }
 
     setTipoUsuario(tipoUsuario) {
-        this.tipoUsuario = tipoUsuario ? tipoUsuario.trim() : "";
+        this.tipoUsuario = tipoUsuario ? String(tipoUsuario).trim() : "";
     }
 
     getTipoUsuario() {

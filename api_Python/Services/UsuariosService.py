@@ -78,7 +78,9 @@ class UsuariosService:
             raise ErrorResponse(400, "Dados inválidos", {"message": "Email e senha são obrigatórios"})
 
         email = (dados.get("email") if isinstance(dados, dict) else getattr(dados, "email", "")).strip()
-        senha_informada = (dados.get("senha") if isinstance(dados, dict) else getattr(dados, "senha", ""))
+        # O SQL de carga inicial pode armazenar senhas numéricas como número;
+        # normalize os dois lados para permitir login vindo de qualquer cliente.
+        senha_informada = str(dados.get("senha") if isinstance(dados, dict) else getattr(dados, "senha", ""))
 
         resultado = self.usuarios_dao.find_by_field("email", email)
         if not resultado:

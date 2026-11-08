@@ -41,7 +41,6 @@ class UsuariosDao:
 
         try:
             # Em Python, para transações com mysql-connector, usamos conn.start_transaction()
-            conn.start_transaction()
 
             # Limpa referências (estranha a falta de CASCADE no banco)
             cursor = conn.cursor()
@@ -57,7 +56,8 @@ class UsuariosDao:
             conn.commit()
             return ok
         except Exception as e:
-            conn.rollback()
+            if hasattr(conn, "rollback"):
+                conn.rollback()
             logging.error(f"Erro delete usuario: {e}")
             raise Exception(f"Erro ao excluir usuário: {e}")
 
